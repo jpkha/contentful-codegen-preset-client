@@ -8,9 +8,11 @@ import Header from '../../components/header'
 import PostHeader from '../../components/post-header'
 import SectionSeparator from '../../components/section-separator'
 import Layout from '../../components/layout'
-import { getAllPostsWithSlug, getPostAndMorePosts } from '../../lib/api'
 import PostTitle from '../../components/post-title'
 import { CMS_NAME } from '../../lib/constants'
+import {initContentfulSsrClient} from "../../services/urql-client";
+import {AllBlogPost} from "../../services/allBlogPost.graphql";
+import { AllBlogPostQuery } from "../../services/lib/graphql/generated/graphql";
 
 export default function Post({ post, morePosts, preview }) {
   const router = useRouter()
@@ -54,8 +56,7 @@ export default function Post({ post, morePosts, preview }) {
 }
 
 export async function getStaticProps({ params, preview = false }) {
-  const data = await getPostAndMorePosts(params.slug, preview)
-
+  const data = await getBlogPostBySlug(params.slug)
   return {
     props: {
       preview,
@@ -66,9 +67,10 @@ export async function getStaticProps({ params, preview = false }) {
 }
 
 export async function getStaticPaths() {
-  const allPosts = await getAllPostsWithSlug()
+  const { client } = initContentfulSsrClient()
+  const { data }: {data?: AllBlogPostQuery} = await client!.query( AllBlogPost, {} ).toPromise();
   return {
-    paths: allPosts?.map(({ slug }) => `/posts/${slug}`) ?? [],
+    paths: data?.blogPostCollection?.items.map(({ slug }) => slug) ?? [],
     fallback: true,
   }
 }
